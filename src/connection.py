@@ -36,8 +36,11 @@ class Connection:
 					link = link.replace(" ","")
 					return link
 
-	def requestType(self, type):
-		self.constructUrl(type)
+	def requestType(self, type, next):
+		if next == False:
+			self.constructUrl(type)
+		else:
+			self.url = self.nextUrl
 		self.response = urllib2.urlopen(self.url)
 		headers = self.response.info().items()
 		self.nextUrl = self.getHeaderValue(headers,"link")
