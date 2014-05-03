@@ -91,7 +91,17 @@ class Mining(object):
                     except Exception, e:
                         print "Error:" + str(e)
                         print "Could not get Title from Issue# " + str(issue["number"])
+                    labels = ""
+                    labelCount = 0
+                    for label in issue["labels"]:
+                        if labelCount == 0:
+                            labels += label["name"]
+                        else:
+                            labels += "," + label["name"]
+                        labelCount += 1
+                    issueElement.set("labels", labels)
                     self.mineEvents(issue, issueElement)
                     count += 1
             if issuesConnection.currentPage == issuesConnection.totalPages:
                 finished = True
+        print "Finished with repository: " + self.gitHubAccount + "/" + self.gitHubRepository
