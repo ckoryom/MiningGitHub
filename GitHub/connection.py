@@ -1,3 +1,4 @@
+#!/usr/bin/python
 '''
 Created on May 3, 2014
 
@@ -24,6 +25,9 @@ class Connection(object):
     dataType = ""
     
     def constructUrl(self, dataType, data):
+        """
+        Constructs the URL of the GitHub RESTFULL API
+        """
         url = ""
         url += self.apiUrl + "/repos/"
         url += self.gitHubAccount + "/" + self.gitHubRepository + "/"
@@ -38,6 +42,10 @@ class Connection(object):
         self.url = url
 
     def getHeaderValue(self, headers, key):
+        """
+        Gets the desired header object from the response.
+        Also gets the NextUrl and LastUrl for the pagination
+        """
         for item in headers:
             item = str(item)
             item = item.replace("(","")
@@ -73,6 +81,10 @@ class Connection(object):
                 
 
     def requestType(self, dataType, data, nextPage):
+        """
+        Connects to the GitHub RESTFUL API and gathers
+        the response object
+        """
         if nextPage == False:
             self.constructUrl(dataType, data)
         else:
@@ -90,6 +102,9 @@ class Connection(object):
             self.response = None
 
     def getResponseJson(self):
+        """
+        Converts Response object into JSON
+        """
         if self.response != None:
             return json.load(self.response)
         else:

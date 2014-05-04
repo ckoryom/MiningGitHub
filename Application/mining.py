@@ -1,3 +1,4 @@
+#!/usr/bin/python
 '''
 Created on May 3, 2014
 
@@ -13,12 +14,22 @@ class Mining(object):
     dataTree = ""
     
     def getProgressPercentage(self, currentCount, connection):
+        """
+        Return the current progress of the desired connection class
+        Normally we want to keep the progress status of the issues.
+        Total Items is an aproximate, we multiply the items per page
+        with the total number of pages
+        """
         currentCount += 1
         totalItems = connection.perPage * connection.totalPages
         percent = (currentCount*100)/totalItems
         print(connection.dataType + ": " + str(currentCount) + " of " + str(totalItems) +  " - "  + str(percent) + "% of " + connection.dataType)
     
     def startMiningProcedure(self):
+        """
+        This calls the first mining functions for the issues and
+        sets the GitHub account and repository to mine.
+        """
         self.gitHubAccount = raw_input("Enter GitHub account:")
         self.gitHubRepository = raw_input("Enter GitHub repository:")
         self.token = raw_input("Enter Auth Token:")
@@ -29,6 +40,11 @@ class Mining(object):
         self.dataTree.saveTree("/xml/" + self.gitHubRepository +".xml")
 
     def mineCommits(self, sha, issueElement):
+        """
+        Gets the commit JSON object from the RESTFUL GitHub API
+        We pass the sha to look for and the issueElement to
+        construct the XML tree
+        """
         commitsConnection = Connection()
         commitsConnection.gitHubAccount = self.gitHubAccount
         commitsConnection.gitHubRepository = self.gitHubRepository
@@ -51,6 +67,12 @@ class Mining(object):
             self.dataTree.saveTree("/xml/" + self.gitHubRepository +".xml")
             
     def mineEvents(self, issue, issueElement):
+        """
+        Gets the events JSON object from the RESTFUL GitHub API
+        We pass the issue number to look for and the issueElement to
+        construct the XML tree.
+        We only take care of events that have a commit_id
+        """
         eventsConnection = Connection()
         eventsConnection.gitHubAccount = self.gitHubAccount
         eventsConnection.gitHubRepository = self.gitHubRepository
@@ -66,6 +88,10 @@ class Mining(object):
                 
     
     def mineIssues(self):
+        """
+        Gets the issues JSON object from the RESTFUL GitHub API
+        Here we also construct the XML tree
+        """
         issuesConnection = Connection()
         issuesConnection.gitHubAccount = self.gitHubAccount
         issuesConnection.gitHubRepository = self.gitHubRepository
