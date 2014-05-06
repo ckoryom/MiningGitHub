@@ -6,12 +6,26 @@ Created on May 3, 2014
 '''
 from GitHub.connection import Connection
 from TreeBuilder.datatree import DataTree
+from Model.parameters import Parameters
+from RModule import RModule
 
 class Mining(object):
     gitHubAccount = ""
     gitHubRepository = ""
     token = ""
-    dataTree = ""
+    dataTree = None
+    parameters = Parameters()
+    issues = list()
+    menu = None
+    
+    def writeToTree (self):
+        if (self.parameters.values["writeXML"]):
+            if (self.dataTree is None):
+                self.dataTree = DataTree()
+                self.dataTree.initiateTree("DataTree")
+            else:
+                self.dataTree.defineTree()
+                self.dataTree.saveTree("/xml/" + self.gitHubRepository +".xml")
     
     def getProgressPercentage(self, currentCount, connection):
         """
@@ -33,11 +47,18 @@ class Mining(object):
         self.gitHubAccount = raw_input("Enter GitHub account:")
         self.gitHubRepository = raw_input("Enter GitHub repository:")
         self.token = raw_input("Enter Auth Token:")
-        self.dataTree = DataTree()
-        self.dataTree.initiateTree("DataTree")
-        self.mineIssues()
-        self.dataTree.defineTree()
-        self.dataTree.saveTree("/xml/" + self.gitHubRepository +".xml")
+        self.writeToTree()
+        self.parameters.values["issuesLimit"] = raw_input("Number of Issues to mine:")
+        self.issues = self.mineIssues()
+        self.writeToTree()
+        if (self.parameters.values["useR"]):
+            rModule = RModule()
+            rModule.issues = self.issues
+            rModule.parameters = self.parameters
+            self.menu.RMenu(rModule)
+            
+        
+        
 
     def mineCommits(self, sha, issueElement):
         """
@@ -52,19 +73,19 @@ class Mining(object):
         commitsConnection.requestType("commits", sha, False)
         commit = commitsConnection.getResponseJson()
         if commit != None:
-            commitElement = self.dataTree.addSubElement(issueElement, "commit")
-            commitElement.set("sha", sha)
-            try:
-                commitElement.set("message", str(commit["commit"]["message"]))
-                pass
-            except Exception, e:
-                print "Error:" + str(e)
-                print "Could not get Message from sha# " + str(sha)
-            for commitFile in commit["files"]:
-                fileElement = self.dataTree.addSubElement(commitElement, "file")
-                fileElement.set("filename", str(commitFile["filename"]))
-            self.dataTree.defineTree()
-            self.dataTree.saveTree("/xml/" + self.gitHubRepository +".xml")
+            if (self.parameters.values["writeXML"]):
+                commitElement = self.dataTree.addSubElement(issueElement, "commit")
+                commitElement.set("sha", sha)
+                try:
+                    commitElement.set("message", str(commit["commit"]["message"]))
+                    pass
+                except Exception, e:
+                    print "Error:" + str(e)
+                    print "Could not get Message from sha# " + str(sha)
+                for commitFile in commit["files"]:
+                    fileElement = self.dataTree.addSubElement(commitElement, "file")
+                    fileElement.set("filename", str(commitFile["filename"]))
+                self.writeToTree()
             
     def mineEvents(self, issue, issueElement):
         """
@@ -86,7 +107,6 @@ class Mining(object):
                     self.mineCommits(str(event["commit_id"]), issueElement)
                 count += 1
                 
-    
     def mineIssues(self):
         """
         Gets the issues JSON object from the RESTFUL GitHub API
@@ -97,6 +117,9 @@ class Mining(object):
         issuesConnection.gitHubRepository = self.gitHubRepository
         issuesConnection.token = self.token
         
+        if (self.parameters.values["labels"] != None):
+            issuesConnection.labels = self.parameters.values["labels"]
+        
         count = 0
         finished = False
         while (finished == False):
@@ -106,28 +129,38 @@ class Mining(object):
                 issuesConnection.requestType("issues", "", True)
             issues = issuesConnection.getResponseJson()
             if issues != None:
+                self.issues.append(issues)
                 for issue in issues:
                     self.getProgressPercentage(count, issuesConnection)
-                    issueElement = self.dataTree.addSubElement(self.dataTree.root, "issue")
-                    issueElement.set("id", str(issue["number"]))
-                    issueElement.set("state", str(issue["state"]))
-                    try:
-                        issueElement.set("title", str(issue["title"]))
-                        pass
-                    except Exception, e:
-                        print "Error:" + str(e)
-                        print "Could not get Title from Issue# " + str(issue["number"])
-                    labels = ""
-                    labelCount = 0
-                    for label in issue["labels"]:
-                        if labelCount == 0:
-                            labels += label["name"]
-                        else:
-                            labels += "," + label["name"]
-                        labelCount += 1
-                    issueElement.set("labels", labels)
-                    self.mineEvents(issue, issueElement)
+                    issueElement = None
+                    if (self.parameters.values["writeXML"]):
+                        issueElement = self.dataTree.addSubElement(self.dataTree.root, "issue")
+                        issueElement.set("id", str(issue["number"]))
+                        issueElement.set("state", str(issue["state"]))
+                        try:
+                            issueElement.set("title", str(issue["title"]))
+                            pass
+                        except Exception, e:
+                            print "Error:" + str(e)
+                            print "Could not get Title from Issue# " + str(issue["number"])
+                        labels = ""
+                        labelCount = 0
+                        for label in issue["labels"]:
+                            if labelCount == 0:
+                                labels += label["name"]
+                            else:
+                                labels += "," + label["name"]
+                            labelCount += 1
+                        issueElement.set("labels", labels)
+                    if (self.parameters.values["mineCommits"]):
+                        self.mineEvents(issue, issueElement)
                     count += 1
+                    if (self.parameters.values["issuesLimit"] != None):
+                        if (count + 2 >= int(self.parameters.values["issuesLimit"])):
+                            finished = True
+                            break
             if issuesConnection.currentPage == issuesConnection.totalPages:
                 finished = True
+            
         print "Finished with repository: " + self.gitHubAccount + "/" + self.gitHubRepository
+        return self.issues

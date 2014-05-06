@@ -23,6 +23,7 @@ class Connection(object):
     currentPage = 1
     nextPage = 2
     dataType = ""
+    labels = None
     
     def constructUrl(self, dataType, data):
         """
@@ -33,11 +34,17 @@ class Connection(object):
         url += self.gitHubAccount + "/" + self.gitHubRepository + "/"
         if dataType == "issues":
             url += dataType + "?state=" + self.issueState
+            url += "&direction=asc"
+            if (self.labels != None):
+                url += "&labels=" + self.labels
         elif dataType == "events":
             url += "issues/" + data + "/" + dataType
         elif dataType == "commits":
             url += dataType + "/" + data
-        url += "?page=" + str(self.page) + "&per_page=" + str(self.perPage)
+        initiationCharacter = "?"
+        if url.find("&") > 0:
+            initiationCharacter = "&"
+        url += initiationCharacter + "page=" + str(self.page) + "&per_page=" + str(self.perPage)
         url += "&access_token=" + self.token
         self.url = url
 
@@ -79,7 +86,6 @@ class Connection(object):
                         self.totalPages = int(totalPages)
                     return link
                 
-
     def requestType(self, dataType, data, nextPage):
         """
         Connects to the GitHub RESTFUL API and gathers

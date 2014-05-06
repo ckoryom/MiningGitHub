@@ -5,10 +5,15 @@ Created on May 3, 2014
 @author: ckoryom
 '''
 
-from mining import Mining
+import sys
+import os
+sys.path.append(os.getcwd())
 
-mining = Mining()
-mining.startMiningProcedure()
+from menu import Menu
+
+menu = Menu()
+menu.selectMenu()
+finished = raw_input("Finished...")
 
 
 
