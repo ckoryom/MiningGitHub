@@ -119,6 +119,7 @@ class Mining(object):
         
         if (self.parameters.values["labels"] != None):
             issuesConnection.labels = self.parameters.values["labels"]
+        nPlus = 0
         
         count = 0
         finished = False

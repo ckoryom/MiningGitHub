@@ -11,7 +11,8 @@ class Parameters(object):
               "issuesLimit" : None,
               "writeXML" : True,
               "useR" : False,
-              "timeFormat": "minutes",
+              "timeFormat": "hours",
               "labels": None,
-              "sort": "asc"
+              "sort": "asc",
+              "calculateNextN" : 1
              }
