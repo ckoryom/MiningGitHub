@@ -41,17 +41,25 @@ class Menu(object):
     
     def RMenu(self, rModule):
         menuId = 0
-        while (int(menuId) != 1 and int(menuId) != 2 and int(menuId) != 3):
+        while (int(menuId) != 1 and int(menuId) != 2 and int(menuId) != 3 and int(menuId) != 4):
             print "1) Get MTTR"
             print "2) Get MTTF"
             print "3) Get MTBF"
+            print "4) Get ALL"
             menuId = raw_input("Selection:")
         if (int(menuId) == 1):
             rModule.calculateMeanTimeToRepair(self.groupOption())
-            
         elif (int(menuId) == 2):
             rModule.calculateMeanTimeToFailure(self.groupOption())
         elif (int(menuId) == 3):
             rModule.calculateMeanTimeBetweenFailure(self.groupOption())
+        elif (int(menuId) == 4):
+            untouchedModule = rModule
+            MTBF = rModule.calculateMeanTimeBetweenFailure(self.groupOption())
+            rModule = untouchedModule
+            MTTR = rModule.calculateMeanTimeToRepair(self.groupOption())
+            rModule = untouchedModule
+            MTTF = rModule.calculateMeanTimeToFailure(self.groupOption())
+            availability = rModule.calculateAvailability(MTBF, MTTR)
         
         

@@ -79,6 +79,16 @@ class RModule(object):
         self.runCommand(command)
         return float(self.runCommand("mean(vector)"))
     
+    def calculateYValue (self, slope, intercept, xValue):
+        y = float(slope)*float(xValue) + float(intercept)
+        return y
+    
+    def cleanData(self,data):
+        data = data.replace(" ", "")
+        data = data.replace("[", "")
+        data = data.replace("]", "")
+        return data
+    
     def plot(self, size):
         xCommand = "x <- c("
         for i in range(0,size):
@@ -88,11 +98,24 @@ class RModule(object):
                 xCommand += "," + str(i)
         xCommand += ")"
         self.runCommand(xCommand)
-        self.runCommand("plot(x,vector)")
+        self.runCommand("plot(x,vector,main=)")
         self.runCommand("myLine.fit <- lm(vector ~ x)")
-        print(self.runCommand("summary(myLine.fit)"))
         self.runCommand("abline(myLine.fit)")
+        rsquared = self.runCommand("summary(myLine.fit)$r.squared")
+        coefficient = self.runCommand("coef(myLine.fit)[1]")
+        coefficient = self.cleanData(str(coefficient))
+        intercept = self.runCommand("coef(myLine.fit)[1]")
+        intercept = self.cleanData(str(intercept))
+        slope = self.runCommand("coef(myLine.fit)[2]")
+        slope = self.cleanData(str(slope))
+        print "r-Squared = " + str(rsquared)
+        print "Coefficient = " + str(coefficient)
+        print "Intercept = " + str(intercept)
+        print "Slope = " + str(slope)
+        predictedNPlus = self.calculateYValue(slope,intercept,int(self.parameters.values["calculateNextN"]))
+        print "Predicted n + " + str(int(self.parameters.values["calculateNextN"])) + " = " + str(predictedNPlus)
         raw_input("plotting...")        
+    
     
     def makeGroups (self,issues,groups,type, nPlus):
         itemCount = 0
@@ -103,9 +126,12 @@ class RModule(object):
         finish = False
         findNPlus = False
         nPlusFound = False
+        iOld = 0
         for issueList in issues:
             counter = 0
             for issue in issueList:
+                if itemCount == 0 and type == "MTTF":
+                    firstIssue = issue
                 if (group != None and len(group)== int(groups)):
                     groupMean = self.calculateArithmeticMean(group)
                     timeGroups.append(groupMean)
@@ -123,15 +149,22 @@ class RModule(object):
                             if previousIssue != None:
                                 time = self.calculateDates(previousIssue["created_at"], issueList[i]["created_at"])
                                 time = int(time * 100) / 100.00
-                                if findNPlus == False:
-                                    group.append(time)
+                            else:
+                                time = 0
+                            if findNPlus == False:
+                                group.append(time)
+                            previousIssue = issue
                         elif type == "MTTF":
-                            if previousIssue != None:
-                                time = self.calculateDates(previousIssue["created_at"], issueList[i]["created_at"])
+                            if firstIssue != None:
+                                time = self.calculateDates(firstIssue["created_at"], issueList[i]["created_at"])
                                 time = int(time * 100) / 100.00
-                                if findNPlus == False:
-                                    group.append(time)
+                            else:
+                                time = 0
+                            if findNPlus == False:
+                                group.append(time)
+                                
                         if groupCounter == 0:
+                            iOld = i
                             if (self.printResults and findNPlus == False):
                                 print "       "+str(issueList[i]["number"])+"       ||       "+str(issueList[i]["created_at"])+"       ||       "+str(issueList[i]["closed_at"])+"       ||       "+str(time)+""
                         groupCounter += 1
@@ -139,7 +172,7 @@ class RModule(object):
                 itemCount += 1
                 if itemCount == int(self.parameters.values["issuesLimit"]) + int(nPlus):
                     if (self.printResults):
-                        print "N+" + str(nPlus) + "       "+str(issueList[i]["number"])+"       ||       "+str(issueList[i]["created_at"])+"       ||       "+str(issueList[i]["closed_at"])+"       ||       "+str(time)+""
+                        print "N+" + str(nPlus) + "       "+str(issueList[iOld]["number"])+"       ||       "+str(issueList[iOld]["created_at"])+"       ||       "+str(issueList[iOld]["closed_at"])+"       ||       "+str(time)+""
                     nPlus = time
                     nPlusFound = True
                     
@@ -153,6 +186,12 @@ class RModule(object):
                 break
         return timeGroups
                 
+    def calculateAvailability(self, MTBF, MTTR):
+        availability = MTBF / (MTBF + MTTR)
+        if (self.printResults):
+            print "Availability = " + str(availability)
+        return availability
+    
     def calculateMeanTimeToRepair(self,groups): 
         if (self.printResults):
             print "       Issue       ||       OpeningDate       ||       ClosingDate       ||       Time("+self.parameters.values["timeFormat"]+")"
@@ -167,7 +206,21 @@ class RModule(object):
             self.plot(len(timeGroups))
         return mean
     
-    def calculateMeanTimeToFailure(self,groups):
+    def calculateMeanTimeToFailure(self,groups): 
+        if (self.printResults):
+            print "       Issue       ||       OpeningDate       ||       ClosingDate       ||       Time("+self.parameters.values["timeFormat"]+")"
+            print "--------------------------------------------------------------------------------------------"
+        timeGroups = self.makeGroups(self.issues, groups, "MTTF", int(self.parameters.values["calculateNextN"]))
+        mean = self.calculateArithmeticMean(timeGroups)
+        if (self.printResults):
+            print "--------------------------------------------------------------------------------------------"
+            print "Item Count: " + str(len(timeGroups) + 1)
+            print "Groups of: " + str(groups) + " -- MTTF: " + str(mean)
+        if (self.plotResults):
+            self.plot(len(timeGroups))
+        return mean
+    
+    def calculateMeanTimeToFailureOld(self,groups):
         issueCount = 0
         itemCount = 0
         timeGroups = list()
