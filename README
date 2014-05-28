@@ -8,3 +8,9 @@ The main application is application.py
 To run just download the project and go to a terminal and write the command:
 
 python application.py
+
+TO make the project work install the dependencies:
+
+Python 2.6 -> onwards
+
+Rserve: http://rforge.net/Rserve/
