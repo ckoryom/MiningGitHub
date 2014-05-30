@@ -24,6 +24,7 @@ class Connection(object):
     nextPage = 2
     dataType = ""
     labels = None
+    sinceDate = None
     
     def constructUrl(self, dataType, data):
         """
@@ -37,6 +38,8 @@ class Connection(object):
             url += "&direction=asc"
             if (self.labels != None):
                 url += "&labels=" + self.labels
+            if (self.sinceDate != None):
+                url += "&since=" + self.sinceDate
         elif dataType == "events":
             url += "issues/" + data + "/" + dataType
         elif dataType == "commits":

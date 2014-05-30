@@ -14,5 +14,7 @@ class Parameters(object):
               "timeFormat": "days",
               "labels": None,
               "sort": "asc",
-              "calculateNextN" : 1
+              "calculateNextN" : 1,
+              "sinceDate" : None,
+              "untilDate" : None
              }

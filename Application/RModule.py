@@ -3,6 +3,7 @@ Created on May 6, 2014
 
 @author: ckoryom
 '''
+from __future__ import division
 import pyRserve
 from datetime import datetime
 from Model.parameters import Parameters
@@ -53,16 +54,29 @@ class RModule(object):
     def secondsToMinutes(self, seconds):
         return seconds/60
     
+    def daysToHours(self, days):
+        return days*24
+    
+    def hoursToDays(self, hours):
+        return hours/24
+    
     def calculateDates(self, dateA, dateB):
         dateObjectA = datetime.strptime(dateA, "%Y-%m-%dT%H:%M:%SZ")
         dateObjectB = datetime.strptime(dateB, "%Y-%m-%dT%H:%M:%SZ")
         timeDelta = abs(dateObjectB - dateObjectA)
         if (self.parameters.values["timeFormat"] == "hours"):
-            return self.secondsToHours(timeDelta.seconds)
+            days = timeDelta.days
+            daysHours = self.daysToHours(days)
+            hours = self.secondsToHours(timeDelta.seconds)
+            hours += daysHours
+            return hours
         elif (self.parameters.values["timeFormat"] == "minutes"):
             return self.secondsToMinutes(timeDelta.seconds)
         elif (self.parameters.values["timeFormat"] == "days"):
-            return timeDelta.days
+            hours = self.secondsToHours(timeDelta.seconds)
+            daysFromHours = self.hoursToDays(hours)
+            days = timeDelta.days + daysFromHours
+            return days
         else:
             return timeDelta.hours
     
@@ -127,6 +141,7 @@ class RModule(object):
         findNPlus = False
         nPlusFound = False
         iOld = 0
+        nPlusCounter = 0
         for issueList in issues:
             counter = 0
             for issue in issueList:
@@ -168,11 +183,16 @@ class RModule(object):
                             if (self.printResults and findNPlus == False):
                                 print "       "+str(issueList[i]["number"])+"       ||       "+str(issueList[i]["created_at"])+"       ||       "+str(issueList[i]["closed_at"])+"       ||       "+str(time)+""
                         groupCounter += 1
+                    if findNPlus:
+                        if nPlusCounter < int(nPlus):
+                            nPlusIssue = issueList[i]
+                            nPlusTime = time
+                        nPlusCounter += 1
                 counter += 1
                 itemCount += 1
                 if itemCount == int(self.parameters.values["issuesLimit"]) + int(nPlus):
                     if (self.printResults):
-                        print "N+" + str(nPlus) + "       "+str(issueList[iOld]["number"])+"       ||       "+str(issueList[iOld]["created_at"])+"       ||       "+str(issueList[iOld]["closed_at"])+"       ||       "+str(time)+""
+                        print "N+" + str(nPlus) + "       "+str(nPlusIssue["number"])+"       ||       "+str(nPlusIssue["created_at"])+"       ||       "+str(nPlusIssue["closed_at"])+"       ||       "+str(nPlusTime)+""
                     nPlus = time
                     nPlusFound = True
                     
@@ -201,7 +221,7 @@ class RModule(object):
         if (self.printResults):
             print "--------------------------------------------------------------------------------------------"
             print "Item Count: " + str(len(timeGroups) + 1)
-            print "Groups of: " + str(groups) + " -- MTBF: " + str(mean)
+            print "Groups of: " + str(groups) + " -- MTTR: " + str(mean)
         if (self.plotResults):
             self.plot(len(timeGroups))
         return mean
@@ -271,7 +291,7 @@ class RModule(object):
         if (self.printResults):
             print "--------------------------------------------------------------------------------------------"
             print "Item Count: " + str(len(timeGroups) + 1)
-            print "Groups of: " + str(groups) + " -- MTTR: " + str(mean)
+            print "Groups of: " + str(groups) + " -- MTBF: " + str(mean)
         if (self.plotResults):
             self.plot(len(timeGroups))
         return mean

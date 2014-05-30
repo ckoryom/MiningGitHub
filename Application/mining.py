@@ -7,7 +7,9 @@ Created on May 3, 2014
 from GitHub.connection import Connection
 from TreeBuilder.datatree import DataTree
 from Model.parameters import Parameters
+from Tools.fileManager import FileManager
 from RModule import RModule
+from datetime import datetime
 
 class Mining(object):
     gitHubAccount = ""
@@ -48,7 +50,8 @@ class Mining(object):
         self.gitHubRepository = raw_input("Enter GitHub repository:")
         self.token = raw_input("Enter Auth Token:")
         self.writeToTree()
-        self.parameters.values["issuesLimit"] = raw_input("Number of Issues to mine:")
+        if (self.parameters.values["sinceDate"] == None):
+            self.parameters.values["issuesLimit"] = raw_input("Number of Issues to mine:")
         self.issues = self.mineIssues()
         self.writeToTree()
         if (self.parameters.values["useR"]):
@@ -56,6 +59,9 @@ class Mining(object):
             rModule.issues = self.issues
             rModule.parameters = self.parameters
             self.menu.RMenu(rModule)
+        elif (self.parameters.values["exportToCsv"]):
+            fileManager = FileManager()
+            fileManager.writeToCsv("/csv/data.csv", self.issues)
             
         
         
@@ -70,6 +76,8 @@ class Mining(object):
         commitsConnection.gitHubAccount = self.gitHubAccount
         commitsConnection.gitHubRepository = self.gitHubRepository
         commitsConnection.token = self.token
+        if (self.parameters.values["sinceDate"] != None):
+            commitsConnection.since = self.parameters.values["dateSince"]
         commitsConnection.requestType("commits", sha, False)
         commit = commitsConnection.getResponseJson()
         if commit != None:
@@ -158,6 +166,10 @@ class Mining(object):
                     count += 1
                     if (self.parameters.values["issuesLimit"] != None):
                         if (count + 2 >= int(self.parameters.values["issuesLimit"])):
+                            finished = True
+                            break
+                    if (self.parameters.values["untilDate"] != None):
+                        if (datetime.strptime(issue["created_at"], "%Y-%m-%dT%H:%M:%SZ") >= datetime.strptime(self.parameters.values["untilDate"], "%d/%m/%Y")):
                             finished = True
                             break
             if issuesConnection.currentPage == issuesConnection.totalPages:
